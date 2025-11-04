@@ -109,7 +109,7 @@ def get_review_list(bookId):
 def check(bookId):
     """检查是否已经插入过 如果已经插入了就删除"""
     filter = {"property": "BookId", "rich_text": {"equals": bookId}}
-    response = query_database(database_id=database_id, filter=filter)
+    response = client.databases.query(database_id=database_id, filter=filter)
     for result in response["results"]:
         try:
             client.blocks.delete(block_id=result["id"])
@@ -213,18 +213,6 @@ def get_notebooklist():
     return None
 
 
-def query_database(database_id, **kwargs):
-    """兼容不同版本 Notion SDK 的查询方法"""
-    params = {k: v for k, v in kwargs.items() if v is not None}
-    databases_query = getattr(client.databases, "query", None)
-    if callable(databases_query):
-        return databases_query(database_id=database_id, **params)
-    data_sources = getattr(client, "data_sources", None)
-    if data_sources and hasattr(data_sources, "query"):
-        return data_sources.query(data_source_id=database_id, **params)
-    raise AttributeError("Notion client does not support database querying.")
-
-
 def get_sort():
     """获取database中的最新时间"""
     filter = {"property": "Sort", "number": {"is_not_empty": True}}
@@ -234,7 +222,7 @@ def get_sort():
             "direction": "descending",
         }
     ]
-    response = query_database(
+    response = client.databases.query(
         database_id=database_id, filter=filter, sorts=sorts, page_size=1
     )
     if len(response.get("results")) == 1:
